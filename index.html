@@ -15,13 +15,12 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800;900&family=Inter:wght@400;500;600&display=swap"
         rel="stylesheet">
+
+    <!-- Ícones -->
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
     <link rel="stylesheet" href="landing.css">
     <link rel="icon" type="image/png" href="logo.png">
-
-    <!-- Script defer -->
-    <script src="landing.js" defer></script>
 </head>
 
 <body>
@@ -153,6 +152,26 @@
     <footer>
         <p>&copy; 2026 Represente-me!. Conectando Vendas, Agilizando Processos.</p>
     </footer>
+
+    <!-- Script de Animação de Scroll Seguro -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: "0px 0px -50px 0px"
+            });
+
+            document.querySelectorAll('.reveal').forEach((el) => {
+                observer.observe(el);
+            });
+        });
+    </script>
 </body>
 
 </html>
