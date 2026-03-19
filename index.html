@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,28 +7,20 @@
     <!-- Otimização -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style"
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800;900&family=Inter:wght@400;500;600&display=swap">
-
     <!-- Fonts -->
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800;900&family=Inter:wght@400;500;600&display=swap"
-        rel="stylesheet">
-
+    <!-- Fontes Premium -->
+    <!-- Arial is the primary font (system default) -->
     <!-- Ícones -->
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-
     <link rel="stylesheet" href="landing.css">
     <link rel="icon" type="image/png" href="logo.png">
 </head>
-
 <body>
 
     <!-- Header -->
     <nav class="navbar">
         <div class="brand">
             <img src="logo.png" alt="Represente-me">
-            represente-me!
         </div>
         <div class="nav-links">
             <a href="#funcionalidades" class="d-mobile-hide">Funcionalidades</a>
@@ -39,17 +30,15 @@
     </nav>
 
     <!-- Hero -->
-    <section class="hero" style="animation: fadeUp 0.8s ease forwards;">
-        <p class="tagline">Seu HUB Inteligente de Vendas em um Só Lugar</p>
-        <h1>Domine o território,<br> centralize <span>Tudo.</span></h1>
-        <p class="desc">Acesse mapeamento inteligente no mapa, crie seu próprio painel de integrações e links
-            essenciais, gerencie clientes como um CRM dinâmico e tenha uma base de prospecção implacável para o seu
-            negócio.</p>
-        <a href="#planos" class="cta-btn popup-anim">Escolha seu plano</a>
+    <section class="hero">
+        <p class="tagline">Centralize tudo em um único lugar.</p>
+        <h1>Domine as suas<br><span>VENDAS!</span></h1>
+        <p class='desc'>Tenha acesso a um mapa inteligente, para ter um controle mais eficiente de suas vendas, melhore a gestão de seus clientes, tenha seu próprio painel de integrações, conecte tudo em um só lugar e tenha uma base de prospecção implacável para o seu negócio.</p>
+        <a href="#planos" class="btn-primary">Conheça nossos planos</a>
     </section>
 
     <div class="separator-text reveal">
-        <h2 class="title-bold text-center">funcionalidades<br>core</h2>
+        <h2>Funcionalidades</h2>
     </div>
 
     <!-- Features -->
@@ -57,88 +46,73 @@
         <div class="feature-pill reveal delay-1">
             <i class='bx bx-map-alt'></i>
             <h3>Radar<br>Territorial</h3>
-            <p>Geolocalização focada em vendas. Identifique potenciais clientes diretamente no mapa da sua região. Busca
-                integrada e auto-preenchimento via CNPJ.</p>
+            <p>Geolocalização focada em vendas. Identifique potenciais clientes diretamente no mapa da sua região. Busca integrada e auto-preenchimento via CNPJ.</p>
         </div>
-        <div class="feature-pill inverted reveal delay-2">
+        <div class="feature-pill reveal delay-2">
             <i class='bx bx-vector'></i>
             <h3>Painel<br>Atalho Hub</h3>
-            <p>Integre todos os seus sistemas, sites essenciais, WhatsApp e links de uso recorrente em nossa interface
-                principal. Acesso em um clique a tudo do negócio.</p>
+            <p>Integre todos os seus sistemas, sites essenciais, WhatsApp e links de uso recorrente em nossa interface principal. Acesso em um clique a tudo do negócio.</p>
         </div>
         <div class="feature-pill reveal delay-3">
             <i class='bx bx-globe'></i>
             <h3>Mini CRM<br>Dedicado</h3>
-            <p>Cadastros rápidos e dinâmicos para organizar a carteira e acompanhar as relações por meio de anotações
-                práticas para cada um de seus contatos.</p>
+            <p>Cadastros rápidos e dinâmicos para organizar a carteira e acompanhar as relações por meio de anotações práticas para cada um de seus contatos.</p>
         </div>
-        <div class="feature-pill inverted reveal delay-4" style="border-radius: 0 0 200px 200px;">
+        <div class="feature-pill reveal delay-4">
             <i class='bx bx-stopwatch'></i>
             <h3>Tempo e<br>Eficiência</h3>
-            <p>Desenvolvido para priorizar agilidade. Pare de pular entre várias abas; encontre a empresa no mapa,
-                ligue, anote e siga para a próxima etapa.</p>
+            <p>Desenvolvido para priorizar agilidade. Pare de perder tempo trocando entre várias abas/aplicativos, tenha mais tempo para focar em VENDER!</p>
         </div>
     </section>
 
-    <div class="separator-text text-center reveal">
-        <h2 class="title-bold" style="font-size: 80px; letter-spacing:-0.05em; margin-bottom: 20px;">acesso <span
-                style="color:#FF6B00;">exclusivo</span></h2>
-        <p style="color:var(--text-muted); font-size:16px;">escolha o plano que mais se adequa ao momento da sua rotina
-            comercial.</p>
+    <div class="separator-text reveal">
+        <h2>Acesso exclusivo</h2>
     </div>
 
     <!-- Pricing -->
     <section class="pricing-section" id="planos">
         <div class="pricing-cards">
             <!-- Plan 1 -->
-            <div class="price-card feature-tall reveal delay-1">
+            <div class="price-card reveal delay-1">
                 <div class="pill-top">
                     <i class='bx bx-user'></i>
                 </div>
                 <div class="price-value">R$97</div>
-                <div class="price-name" style="margin-top: 20px;">starter hub<br>básico</div>
-                <p class="price-desc" style="font-size:13px;">Ideal para prospectadores e representações locais que
-                    estão começando a criar a carteira de vendas.</p>
+                <div class='price-name'>Profissional</div>
+                <p class="price-desc">Ideal para prospectadores e representações locais que estão começando a criar a carteira de vendas.</p>
                 <ul class="features-list">
                     <li><i class='bx bx-check'></i> Até 2 empresas cadastradas</li>
-                    <li><i class='bx bx-check'></i> Acesso ao Mapa e CRM Basico</li>
+                    <li><i class='bx bx-check'></i> Acesso ao Mapa e CRM Básico</li>
                     <li><i class='bx bx-check'></i> Suporte por email</li>
                 </ul>
                 <a href="login.html" class="card-btn">Assinar</a>
             </div>
 
             <!-- Plan 2 (Featured) -->
-            <div class="price-card feature-tall featured reveal delay-2 hover-glow"
-                style="background: rgba(255, 107, 0, 1) !important; color:#000;">
-                <div class="pill-top popup-anim" style="background:#000; box-shadow:none;">
-                    <i class='bx bx-rocket' style="color:#FFF;"></i>
+            <div class="price-card featured reveal delay-2">
+                <div class="pill-top">
+                    <i class='bx bx-rocket'></i>
                 </div>
-                <div class="badge" style="background:#000; color:#fff;">MAIS VENDIDO</div>
-                <div class="price-value" style="color:#000;">R$147</div>
-                <div class="price-name" style="margin-top: 20px; color:#000;">pro player<br>hub</div>
-                <p class="price-desc" style="font-size:13px; color:#111;">Desenvolvido para agências, vendedores e
-                    distribuidores de médio e grande volume.</p>
-                <ul class="features-list" style="color:#000;">
-                    <li style="border-color:rgba(0,0,0,0.1);"><i class='bx bx-check' style="color:#000;"></i> Até 5
-                        empresas cadastradas</li>
-                    <li style="border-color:rgba(0,0,0,0.1);"><i class='bx bx-check' style="color:#000;"></i> Pesquisa
-                        Automática de CNPJ</li>
-                    <li style="border-color:rgba(0,0,0,0.1);"><i class='bx bx-check' style="color:#000;"></i> Suporte
-                        Prioritário (WhatsApp)</li>
+                <div class="badge">MAIS VENDIDO</div>
+                <div class="price-value">R$147</div>
+                <div class='price-name'>Sênior</div>
+                <p class="price-desc">Desenvolvido para agências, vendedores e distribuidores de médio e grande volume.</p>
+                <ul class="features-list">
+                    <li><i class='bx bx-check'></i> Até 5 empresas cadastradas</li>
+                    <li><i class='bx bx-check'></i> Pesquisa Automática de CNPJ</li>
+                    <li><i class='bx bx-check'></i> Suporte Prioritário (WhatsApp)</li>
                 </ul>
-                <a href="login.html" class="card-btn" style="background:#000; color:#fff; border:none;">Assinar
-                    Agora</a>
+                <a href="login.html" class="card-btn">Assinar Agora</a>
             </div>
 
             <!-- Plan 3 -->
-            <div class="price-card feature-tall reveal delay-3">
+            <div class="price-card reveal delay-3">
                 <div class="pill-top">
                     <i class='bx bx-planet'></i>
                 </div>
                 <div class="price-value">R$197</div>
-                <div class="price-name" style="margin-top: 20px;">enterprise &<br>ilimitado</div>
-                <p class="price-desc" style="font-size:13px;">Projetado para escritórios de representação master,
-                    holding de vendas e franquias atacadistas.</p>
+                <div class='price-name'>Master</div>
+                <p class="price-desc">Projetado para escritórios de representação master, holding de vendas e franquias atacadistas.</p>
                 <ul class="features-list">
                     <li><i class='bx bx-check'></i> Lojas + Links Ilimitados</li>
                     <li><i class='bx bx-check'></i> Mapeamento Avançado</li>
@@ -173,5 +147,4 @@
         });
     </script>
 </body>
-
 </html>

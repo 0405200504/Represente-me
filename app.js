@@ -1,10 +1,5 @@
-﻿window.addEventListener('error', function (event) {
-    if (typeof mostrarToast === 'function') {
-        mostrarToast('Erro interno: ' + event.message, 'error');
-    }
-});
 // ==========================================
-// ESTADO E VARIÃVEIS GLOBAIS
+// ESTADO E VARIÁVEIS GLOBAIS
 // ==========================================
 let empresas = [];
 let editandoId = null;
@@ -27,6 +22,7 @@ const topbarPins = document.getElementById("topbarPins");
 const mainColumn = document.getElementById("mainColumn");
 const iframeColumn = document.getElementById("iframeColumn");
 const mapColumn = document.getElementById("mapColumn");
+const clientesColumn = document.getElementById("clientesColumn");
 
 const sistemaIframe = document.getElementById("sistemaIframe");
 const iframeTitle = document.getElementById("iframeTitle");
@@ -38,13 +34,17 @@ const iframeAlert = document.getElementById("iframeAlert");
 
 const subMenuEmpresas = document.getElementById("subMenuEmpresas");
 const arrowEmpresas = document.getElementById("arrowEmpresas");
-const linkPainel = document.getElementById("linkPainel");
+const liPainel = document.getElementById("liPainel");
+const liMapa = document.getElementById("liMapa");
+const liClientes = document.getElementById("liClientes");
 const btnToggleView = document.getElementById("btnToggleView");
 
+const pinCnpjInput = document.getElementById("pinCnpj");
+
 // ==========================================
-// INICIALIZAÃ‡ÃƒO E EVENTOS
+// INICIALIZAÇÃO E EVENTOS
 // ==========================================
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
     if (localStorage.getItem('nexus_auth') !== 'true') {
         window.location.href = 'login.html';
         return;
@@ -53,11 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const userEmail = localStorage.getItem('nexus_user');
     if (userEmail) {
         const username = userEmail.split('@')[0];
-        document.querySelector('.admin_name').innerText = username.charAt(0).toUpperCase() + username.slice(1);
+        const adminName = document.querySelector('.admin_name');
+        if (adminName) adminName.innerText = username.charAt(0).toUpperCase() + username.slice(1);
     }
 
-    sidebarBtn.onclick = function () {
-        sidebar.classList.toggle("active");
+    if (sidebarBtn && sidebar) {
+        sidebarBtn.onclick = function () {
+            sidebar.classList.toggle("active");
+        }
     }
 
     if (btnToggleView) {
@@ -67,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('nexus_view_mode', currentViewMode);
             atualizarIconeToggle();
             renderizarViews();
-            mostrarToast(currentViewMode === 'table' ? "visão em Lista ativada." : "visão em Grid ativada.", "info");
+            mostrarToast(currentViewMode === 'table' ? "Visão em Lista ativada." : "Visão em Grid ativada.", "info");
         });
     }
 
@@ -78,22 +81,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     carregarDados();
 
-    if (form) form.addEventListener('submit', salvarEmpresa);
-
-    const cnpjEmpresaField = document.getElementById('cnpjEmpresa');
-    if (cnpjEmpresaField) {
-        cnpjEmpresaField.addEventListener('blur', applyCNPJAutoFill);
-    }
-
-    // Auto fill para pinos de Lojistas no mapa
-    const pinCnpjField = document.getElementById('pinCnpj');
-    if (pinCnpjField) {
-        pinCnpjField.addEventListener('blur', applyMapCNPJAutoFill);
+    if (form) {
+        form.addEventListener('submit', salvarEmpresa);
     }
 
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) searchInput.addEventListener('input', filtrarEmpresas);
-});
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrarEmpresas);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.code === 'Space') {
@@ -151,104 +153,6 @@ function applyMagicAutoFill(e) {
     }
 }
 
-async function applyCNPJAutoFill(e) {
-    let rawValue = e.target.value.trim();
-    let cnpj = rawValue.replace(/\D/g, '');
-    if (cnpj.length !== 14) return;
-
-    mostrarToast("Buscando dados da Receita e IBGE...", "info");
-
-    try {
-        let response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-        if (!response.ok) throw new Error("CNPJ não encontrado na base");
-        let data = await response.json();
-
-        let nomeField = document.getElementById('nomeEmpresa');
-        if (!nomeField.value) nomeField.value = data.nome_fantasia || data.razao_social;
-
-        let telefoneField = document.getElementById('telefone');
-        if (!telefoneField.value && data.ddd_telefone_1) {
-            telefoneField.value = data.ddd_telefone_1;
-        }
-
-        let tipoField = document.getElementById('tipoItem');
-        if (!tipoField.value) tipoField.value = 'empresa';
-
-        let localidadeInfo = "";
-        let endereco = "";
-        if (data.logradouro) {
-            endereco = `${data.logradouro}, ${data.numero}, ${data.municipio}, ${data.uf}`;
-            localidadeInfo = endereco;
-        } else {
-            endereco = `${data.municipio}, ${data.uf}`;
-            localidadeInfo = endereco;
-        }
-
-        if (endereco) {
-            let geocodeResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`);
-            let geoData = await geocodeResp.json();
-
-            if (geoData && geoData.length > 0) {
-                e.target.dataset.lat = geoData[0].lat;
-                e.target.dataset.lng = geoData[0].lon;
-                e.target.dataset.endereco = localidadeInfo;
-            }
-        }
-
-        mostrarToast("Cadastro Empresarial e Localização puxados via API!", "success");
-    } catch (err) {
-        mostrarToast(err.message, "error");
-    }
-}
-
-async function applyMapCNPJAutoFill(e) {
-    let rawValue = e.target.value.trim();
-    let cnpj = rawValue.replace(/\D/g, '');
-    if (cnpj.length !== 14) return;
-
-    mostrarToast("Buscando dados no Mapa...", "info");
-
-    try {
-        let response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-        if (!response.ok) throw new Error("CNPJ não encontrado");
-        let data = await response.json();
-
-        let nomeField = document.getElementById('pinNome');
-        if (!nomeField.value) nomeField.value = data.nome_fantasia || data.razao_social;
-
-        let telefoneField = document.getElementById('pinContato');
-        if (!telefoneField.value && data.ddd_telefone_1) {
-            telefoneField.value = data.ddd_telefone_1;
-        }
-
-        let addressField = document.getElementById('pinObs');
-        let endereco = "";
-
-        if (data.logradouro) {
-            endereco = `${data.logradouro}, ${data.numero}, ${data.municipio}, ${data.uf}`;
-        } else {
-            endereco = `${data.municipio}, ${data.uf}`;
-        }
-
-        if (!addressField.value) addressField.value = "Endereço: " + endereco;
-
-        if (endereco) {
-            let geocodeResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}`);
-            let geoData = await geocodeResp.json();
-
-            if (geoData && geoData.length > 0) {
-                document.getElementById("pinLat").value = geoData[0].lat;
-                document.getElementById("pinLng").value = geoData[0].lon;
-                mostrarToast("Localização encontrada com sucesso!", "success");
-            } else {
-                mostrarToast("Preenchido! Mas Endereço não mapeável via Satélite. Clique no mapa manualmente.", "error");
-            }
-        }
-    } catch (err) {
-        mostrarToast(err.message, "error");
-    }
-}
-
 function getClearbitLogoUrl(url, nome) {
     let domain = "";
     if (url && url !== "-") {
@@ -289,11 +193,8 @@ function getUiAvatarUrl(nome) {
 
 window.handleImageError = function (img, fallbackUrl, avatarUrl) {
     if (img.src === avatarUrl) return;
-
     img.onerror = null;
-
     img.src = fallbackUrl;
-
     setTimeout(() => {
         if (img.naturalWidth <= 16 && img.src.includes('google')) {
             img.src = avatarUrl;
@@ -302,12 +203,13 @@ window.handleImageError = function (img, fallbackUrl, avatarUrl) {
 };
 
 // ==========================================
-// NAVEGAÃ‡ÃƒO / VIEWS (PAINEL vs IFRAME)
+// NAVEGAÇÃO / VIEWS (PAINEL vs IFRAME)
 // ==========================================
 function mostrarPainel() {
-    mainColumn.style.display = 'block';
-    iframeColumn.style.display = 'none';
-    if (mapColumn) mapColumn.style.display = 'none';
+    mainColumn.classList.remove('hidden');
+    iframeColumn.classList.add('hidden');
+    if (mapColumn) mapColumn.classList.add('hidden');
+    if (clientesColumn) clientesColumn.classList.add('hidden');
 
     dashboardTitle.innerText = "Painel de Controle";
 
@@ -315,8 +217,23 @@ function mostrarPainel() {
         if (sistemaIframe) sistemaIframe.src = '';
     }, 300);
 
-    document.querySelectorAll(".nav-links a").forEach(l => l.classList.remove("active"));
-    linkPainel.classList.add("active");
+    // Atualiza classes active na sidebar
+    document.querySelectorAll(".nav-links li").forEach(li => li.classList.remove("active"));
+    if (liPainel) liPainel.classList.add("active");
+}
+
+function mostrarClientes() {
+    mainColumn.classList.add('hidden');
+    iframeColumn.classList.add('hidden');
+    if (mapColumn) mapColumn.classList.add('hidden');
+    if (clientesColumn) clientesColumn.classList.remove('hidden');
+
+    dashboardTitle.innerText = "Gestão de Clientes";
+
+    document.querySelectorAll(".nav-links li").forEach(li => li.classList.remove("active"));
+    if (liClientes) liClientes.classList.add("active");
+
+    renderizarTabelaClientes();
 }
 
 function abrirIframeFullScreen(url, nomeEmpresa, empresaId) {
@@ -329,27 +246,21 @@ function abrirIframeFullScreen(url, nomeEmpresa, empresaId) {
         url = 'https://' + url;
     }
 
-    mainColumn.style.display = 'none';
-    if (mapColumn) mapColumn.style.display = 'none';
-    iframeColumn.style.display = 'flex';
-
-    if (url.includes("docs.google.com/spreadsheets") || url.includes("excel")) {
-        iframeAlert.style.display = 'block';
-    } else {
-        iframeAlert.style.display = 'none';
-    }
+    mainColumn.classList.add('hidden');
+    if (mapColumn) mapColumn.classList.add('hidden');
+    if (clientesColumn) clientesColumn.classList.add('hidden');
+    iframeColumn.classList.remove('hidden');
 
     dashboardTitle.innerText = "Visualização: " + nomeEmpresa;
-
     iframeTitle.innerText = nomeEmpresa;
-    iframeIcon.src = getClearbitLogoUrl(url, nomeEmpresa);
-    iframeIcon.onerror = function () {
-        window.handleImageError(this, getGoogleFaviconUrl(url, nomeEmpresa), getUiAvatarUrl(nomeEmpresa));
-    };
-    iframeIcon.style.display = 'inline-block';
-    iframeFallbackIcon.style.display = 'none';
+    
+    // Seletor de ícone se ainda existir no HTML novo
+    if (iframeIcon) {
+        iframeIcon.src = getClearbitLogoUrl(url, nomeEmpresa);
+        iframeIcon.style.display = 'inline-block';
+    }
+    if (iframeFallbackIcon) iframeFallbackIcon.style.display = 'none';
 
-    // NOTAS DO IFRAME
     if (empresaId) {
         let emp = empresas.find(e => e.id === empresaId);
         const iframeNotes = document.getElementById("iframeNotes");
@@ -364,23 +275,11 @@ function abrirIframeFullScreen(url, nomeEmpresa, empresaId) {
         }
     }
 
-    openExternalBtn.href = url;
-
-    mostrarToast("Abrindo... Dica: Se ficar branco, use o botão de 'Abrir em nova aba'", "success");
+    if (openExternalBtn) openExternalBtn.href = url;
+    mostrarToast("Abrindo sistema...", "info");
     sistemaIframe.src = url;
 
-    document.querySelectorAll(".nav-links a").forEach(l => l.classList.remove("active"));
-}
-
-function toggleNotesPanel() {
-    const panel = document.getElementById('iframeNotesPanel');
-    if (panel) {
-        if (panel.style.width === '0px' || panel.style.width === '0') {
-            panel.style.width = '250px';
-        } else {
-            panel.style.width = '0px';
-        }
-    }
+    document.querySelectorAll(".nav-links li").forEach(li => li.classList.remove("active"));
 }
 
 function toggleSubMenuEmpresas() {
@@ -396,13 +295,12 @@ function toggleSubMenuEmpresas() {
 function renderizarSidebarLogos() {
     subMenuEmpresas.innerHTML = "";
     if (empresas.length === 0) {
-        subMenuEmpresas.innerHTML = "<li style='padding-left:15px; font-size:12px; color:var(--text-secondary);'>Nenhum item cadastrado</li>";
+        subMenuEmpresas.innerHTML = "<li style='padding-left:15px; font-size:12px; color:var(--text-muted);'>Nenhum item cadastrado</li>";
         return;
     }
 
     empresas.forEach(emp => {
         const urlToUse = emp.siteUrl || '';
-
         const li = document.createElement("li");
         const a = document.createElement("a");
         a.href = "#";
@@ -436,7 +334,6 @@ function renderizarSidebarLogos() {
         a.appendChild(img);
         a.appendChild(span);
         li.appendChild(a);
-
         subMenuEmpresas.appendChild(li);
     });
 }
@@ -470,7 +367,7 @@ function renderizarPinosTopbar() {
 }
 
 // ==========================================
-// FUNÃ‡Ã•ES DE CRUD E LOCAL STORAGE
+// FUNÇÕES DE CRUD E LOCAL STORAGE
 // ==========================================
 function getUserPrefix() {
     return localStorage.getItem('nexus_user') || 'default';
@@ -482,13 +379,11 @@ function carregarDados() {
     if (dadosSalvos) {
         empresas = JSON.parse(dadosSalvos);
     } else {
-        // Fallback p/ n perder dados no sistema anterior sem user logado
         const oldData = localStorage.getItem('nexus_empresas');
         if (oldData) {
             empresas = JSON.parse(oldData);
-            // Salva no novo pra migrar
             localStorage.setItem('nexus_empresas_' + prefix, oldData);
-            localStorage.removeItem('nexus_empresas'); // Migration completa
+            localStorage.removeItem('nexus_empresas');
         }
     }
     renderizarViews();
@@ -522,14 +417,16 @@ window.deletarEmpresa = deletarEmpresa;
 function salvarEmpresa(e) {
     e.preventDefault();
 
-    const nomeEmpresa = document.getElementById('nomeEmpresa').value.trim();
-    const cnpjEmpresa = document.getElementById('cnpjEmpresa') ? document.getElementById('cnpjEmpresa').value.trim() : "";
-    const nomeContato = document.getElementById('nomeContato').value.trim();
-    const telefone = document.getElementById('telefone').value.trim();
-    const tipoItem = document.getElementById('tipoItem').value;
-    const status = document.getElementById('status').value;
-    const siteUrl = document.getElementById('siteUrl').value.trim();
+    const nomeEmpresa = document.getElementById('nomeEmpresa')?.value.trim() || "";
+    const cnpjEmpresa = document.getElementById('cnpjEmpresa')?.value.trim() || "";
+    const nomeContato = document.getElementById('nomeContato')?.value.trim() || "";
+    const telefone = document.getElementById('telefone')?.value.trim() || "";
+    const tipoItem = document.getElementById('tipoItem')?.value || "sistema";
+    const status = document.getElementById('status')?.value || "ativo";
+    const siteUrl = document.getElementById('siteUrl')?.value.trim() || "";
 
+    const loginCofre = document.getElementById('loginCofre')?.value.trim() || "";
+    const senhaCofre = document.getElementById('senhaCofre')?.value.trim() || "";
 
     if (!nomeEmpresa || !tipoItem) {
         mostrarToast("Preencha o Nome e o Tipo para continuar!", "error");
@@ -548,34 +445,13 @@ function salvarEmpresa(e) {
         origem: tipoItem,
         status: status,
         siteUrl: siteUrl,
+        loginCofre: loginCofre,
+        senhaCofre: senhaCofre,
         notas: editandoTarget ? editandoTarget.notas : "",
         arquivos: editandoTarget && editandoTarget.arquivos ? editandoTarget.arquivos : [],
         isPinned: editandoTarget ? editandoTarget.isPinned : false,
         dataCadastro: editandoTarget ? editandoTarget.dataCadastro : new Date().toISOString()
     };
-
-    let cnpjField = document.getElementById('cnpjEmpresa');
-    if (cnpjField && cnpjField.dataset.lat && cnpjField.dataset.lng && !editandoId) {
-        const novoPin = {
-            id: novaEmpresa.id,
-            nome: novaEmpresa.nome,
-            contato: novaEmpresa.telefone !== "-" ? novaEmpresa.telefone : "",
-            status: 'ativo',
-            obs: "Adicionado Automaticamente.\nEndereço: " + cnpjField.dataset.endereco,
-            lat: parseFloat(cnpjField.dataset.lat),
-            lng: parseFloat(cnpjField.dataset.lng),
-            data: new Date().toISOString()
-        };
-
-        if (typeof locaisLojistas !== 'undefined' && typeof salvarPinosLocais === 'function') {
-            locaisLojistas.push(novoPin);
-            salvarPinosLocais();
-        }
-
-        delete cnpjField.dataset.lat;
-        delete cnpjField.dataset.lng;
-        delete cnpjField.dataset.endereco;
-    }
 
     if (editandoId) {
         const index = empresas.findIndex(emp => emp.id === editandoId);
@@ -592,12 +468,12 @@ function salvarEmpresa(e) {
 }
 
 function deletarEmpresa(id) {
-    if (confirm("Tem certeza que deseja excluir este registro? Esta Ação nÃ£o pode ser desfeita.")) {
+    if (confirm("Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.")) {
         empresas = empresas.filter(emp => emp.id !== id);
         salvarDados();
         renderizarViews();
         mostrarPainel();
-        mostrarToast("Registro Excluído com sucesso!", "success");
+        mostrarToast("Registro excluído com sucesso!", "success");
     }
 }
 
@@ -605,7 +481,6 @@ function prepararEdicao(id) {
     const empresa = empresas.find(emp => emp.id === id);
     if (empresa) {
         editandoId = id;
-
         document.getElementById('modalTitle').innerText = "Editar Cadastro / Integração";
         document.getElementById('empresaId').value = empresa.id;
         document.getElementById('nomeEmpresa').value = empresa.nome;
@@ -614,19 +489,19 @@ function prepararEdicao(id) {
         document.getElementById('telefone').value = empresa.telefone !== "-" ? empresa.telefone : "";
 
         const dropDownTipo = (empresa.tipo || empresa.origem) === 'site' ? 'sistema' : (empresa.tipo || empresa.origem);
-
         document.getElementById('tipoItem').value = dropDownTipo;
         document.getElementById('status').value = empresa.status;
         document.getElementById('siteUrl').value = empresa.siteUrl || '';
+        if (document.getElementById('loginCofre')) document.getElementById('loginCofre').value = empresa.loginCofre || '';
+        if (document.getElementById('senhaCofre')) document.getElementById('senhaCofre').value = empresa.senhaCofre || '';
 
         document.getElementById('btnSalvar').innerText = "Atualizar Cadastro";
-
         modal.classList.add('active');
     }
 }
 
 // ==========================================
-// FUNÃ‡Ã•ES DE UI E RENDERIZAÃ‡ÃƒO
+// FUNÇÕES DE UI E RENDERIZAÇÃO
 // ==========================================
 function abrirModal() {
     editandoId = null;
@@ -661,7 +536,7 @@ function formatarStatus(status) {
     const mapa = {
         'novo': 'NOVO',
         'ativo': 'ATIVO',
-        'manutencao': 'MANUTENÃ‡ÃƒO',
+        'manutencao': 'MANUTENÇÃO',
         'arquivado': 'INATIVO',
         'em_contato': 'CONTATO',
         'ganho': 'ATIVO',
@@ -689,18 +564,18 @@ function renderizarViews(dados = null) {
     const lista = dados || empresas;
 
     if (lista.length === 0) {
-        emptyState.classList.add('show');
-        if (tableContainer) tableContainer.style.display = 'none';
-        if (gridEmpresas) gridEmpresas.style.display = 'none';
+        if (emptyState) emptyState.classList.remove('hidden');
+        if (tableContainer) tableContainer.classList.add('hidden');
+        if (gridEmpresas) gridEmpresas.classList.add('hidden');
         return;
     }
 
-    emptyState.classList.remove('show');
+    if (emptyState) emptyState.classList.add('hidden');
 
     if (currentViewMode === 'table') {
-        if (gridEmpresas) gridEmpresas.style.display = 'none';
+        if (gridEmpresas) gridEmpresas.classList.add('hidden');
         if (tableContainer) {
-            tableContainer.style.display = 'block';
+            tableContainer.classList.remove('hidden');
             tabelaBody.innerHTML = '';
             lista.forEach(emp => {
                 const urlValue = emp.siteUrl || '';
@@ -760,7 +635,19 @@ function renderizarViews(dados = null) {
                 btnAbrir.innerHTML = "<i class='bx bx-window-alt' style='vertical-align: middle;'></i> Abrir";
                 btnAbrir.onclick = () => window.abrirIframeFullScreen(urlValue, emp.nome, emp.id);
 
+                const btnCofre = document.createElement('button');
+                btnCofre.className = "action-btn cofre-btn";
+                btnCofre.title = "Ver Credenciais de Acesso";
+                btnCofre.style.cssText = "color: #333; font-size: 14px; background: #e2e8f0; padding: 5px 10px; border-radius: 6px; margin-left:5px;";
+                btnCofre.innerHTML = "<i class='bx bx-lock-alt' style='vertical-align: middle;'></i>";
+                btnCofre.onclick = () => {
+                    const l = emp.loginCofre || "Não cadastrado";
+                    const s = emp.senhaCofre || "Não cadastrada";
+                    alert(`🔐 CRENDENCIAIS DO COFRE\n\nLogin: ${l}\nSenha: ${s}`);
+                };
 
+                tdActionOpen.appendChild(btnAbrir);
+                tdActionOpen.appendChild(btnCofre);
 
                 const tdActionEdit = document.createElement('td');
 
@@ -769,7 +656,7 @@ function renderizarViews(dados = null) {
                 btnDocs.title = "Documentos e Arquivos";
                 btnDocs.innerHTML = "<i class='bx bx-folder'></i>";
                 btnDocs.onclick = () => window.abrirPerfilCliente(emp.id);
-                btnDocs.style.color = "var(--primary-color)";
+                btnDocs.style.color = "var(--text-accent)";
 
                 const btnEdit = document.createElement('button');
                 btnEdit.className = "action-btn edit";
@@ -798,9 +685,10 @@ function renderizarViews(dados = null) {
             });
         }
     } else {
-        if (tableContainer) tableContainer.style.display = 'none';
+        if (tableContainer) tableContainer.classList.add('hidden');
         if (gridEmpresas) {
-            gridEmpresas.style.display = 'grid';
+            gridEmpresas.classList.remove('hidden');
+            gridEmpresas.style.display = 'grid'; // Grid precisa de display: grid
             gridEmpresas.innerHTML = '';
             lista.forEach(emp => {
                 const card = document.createElement('div');
@@ -809,7 +697,7 @@ function renderizarViews(dados = null) {
                 const cssStatusReal = getStatusClass(emp.status);
                 const tipoView = formatarTipo(emp.tipo || emp.origem);
 
-                card.ondblclick = () => {
+                card.onclick = () => {
                     if (urlValue) window.abrirIframeFullScreen(urlValue, emp.nome, emp.id);
                 };
 
@@ -841,6 +729,16 @@ function renderizarViews(dados = null) {
                 btnPin.onclick = (e) => { e.stopPropagation(); window.togglePin(emp.id); };
                 btnPin.innerHTML = "<i class='bx " + (emp.isPinned ? "bxs-star" : "bx-star") + "'></i>";
 
+                const btnCofre = document.createElement('button');
+                btnCofre.className = "action-btn";
+                btnCofre.title = "Acessos do Cofre";
+                btnCofre.onclick = (e) => {
+                    e.stopPropagation();
+                    const l = emp.loginCofre || "N/A";
+                    const s = emp.senhaCofre || "N/A";
+                    alert(`🔐 COFRE\nLogin: ${l}\nSenha: ${s}`);
+                };
+                btnCofre.innerHTML = "<i class='bx bx-lock-alt' style='color: #888;'></i>";
 
                 const btnDocs = document.createElement('button');
                 btnDocs.className = "action-btn";
@@ -861,15 +759,25 @@ function renderizarViews(dados = null) {
                 btnDelete.innerHTML = "<i class='bx bx-trash'></i>";
 
                 actionsDiv.appendChild(btnPin);
+                actionsDiv.appendChild(btnCofre);
                 actionsDiv.appendChild(btnDocs);
                 actionsDiv.appendChild(btnEdit);
                 actionsDiv.appendChild(btnDelete);
+
+                const btnAcessar = document.createElement('button');
+                btnAcessar.className = "btn btn-primary btn-sm btn-acessar";
+                btnAcessar.innerHTML = "<i class='bx bx-window-alt'></i> Acessar Sistema";
+                btnAcessar.onclick = (e) => {
+                    e.stopPropagation();
+                    if (urlValue) window.abrirIframeFullScreen(urlValue, emp.nome, emp.id);
+                };
 
                 card.appendChild(imgLogo);
                 card.appendChild(titleDiv);
                 card.appendChild(subtitleDiv);
                 card.appendChild(badgeDiv);
-                card.appendChild(actionsDiv);
+                card.appendChild(btnAcessar); // Botão principal
+                card.appendChild(actionsDiv); // Ações secundárias
 
                 gridEmpresas.appendChild(card);
             });
@@ -882,42 +790,51 @@ function renderizarTabela() {
 }
 
 function atualizarDashboard() {
-    const elTotalEmpresas = document.getElementById('totalEmpresas');
-    if (elTotalEmpresas) elTotalEmpresas.innerText = empresas.length;
+    const totalSistemas = document.getElementById('countSistemas');
+    if (totalSistemas) totalSistemas.innerText = empresas.length;
 
-    const viaSistema = empresas.filter(emp => (emp.tipo === 'sistema' || emp.origem === 'sistema' || emp.origem === 'site')).length;
-    const elSistemas = document.getElementById('totalSistemas');
-    if (elSistemas) elSistemas.innerText = viaSistema;
+    const totalAlertas = document.getElementById('countAlertas');
+    if (totalAlertas) {
+        // Exemplo de cálculo: tipos 'urgente' ou 'alerta'
+        const alertas = empresas.filter(e => e.status === 'alerta' || e.status === 'urgente').length;
+        totalAlertas.innerText = alertas;
+    }
 
-    const viaApp = empresas.filter(emp => (emp.tipo === 'app' || emp.origem === 'app')).length;
-    const elApps = document.getElementById('totalApps');
-    if (elApps) elApps.innerText = viaApp;
+    // Atualização de badges da sidebar
+    const updateBadge = (id, count) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.innerText = count;
+            if (count === 0) el.classList.add('zero');
+            else el.classList.remove('zero');
+        }
+    };
 
-    const viaPlanilhas = empresas.filter(emp => (emp.tipo === 'planilha' || emp.origem === 'planilha')).length;
-    const elPlanilhas = document.getElementById('totalPlanilhas');
-    if (elPlanilhas) elPlanilhas.innerText = viaPlanilhas;
+    const count25 = empresas.filter(e => e.status === 'alerta').length;
+    const count35 = empresas.filter(e => e.status === 'urgente').length;
+
+    updateBadge('badgeAlertas', count25); 
+    updateBadge('badgeAlertas35', count35);
+    updateBadge('badgeAlertas45', 0);
 }
 
 function filtrarEmpresas(e) {
     const termo = e.target.value.toLowerCase();
-
     if (!termo) {
         renderizarViews();
         return;
     }
-
     const filtradas = empresas.filter(emp =>
         emp.nome.toLowerCase().includes(termo) ||
         (emp.contato && emp.contato.toLowerCase().includes(termo)) ||
         (emp.telefone && emp.telefone.includes(termo)) ||
         (emp.cnpj && emp.cnpj.includes(termo))
     );
-
     renderizarViews(filtradas);
 }
 
 // ==========================================
-// SISTEMA DE NOTIFICAÃ‡Ã•ES (TOAST)
+// SISTEMA DE NOTIFICAÇÕES (TOAST)
 // ==========================================
 function mostrarToast(mensagem, tipo = 'success') {
     const toast = document.createElement('div');
@@ -925,12 +842,17 @@ function mostrarToast(mensagem, tipo = 'success') {
 
     const icone = tipo === 'success' ? 'bx-check-circle' : tipo === 'info' ? 'bx-info-circle' : 'bx-error-circle';
 
-    toast.innerHTML = "<i class='bx " + icone + "'></i><div class='toast-content'><p>" + mensagem + "</p></div>";
+    toast.innerHTML = `<i class='bx ${icone}'></i><div class='toast-content'><p>${mensagem}</p></div>`;
 
-    toastContainer.appendChild(toast);
+    if (toastContainer) {
+        toastContainer.appendChild(toast);
+    } else {
+        const container = document.getElementById('toastContainer');
+        if (container) container.appendChild(toast);
+    }
 
     setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s forwards';
+        toast.classList.add('hide');
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
@@ -942,7 +864,7 @@ function fazerLogout() {
 }
 
 // ==========================================
-// MÃ“DULO DE MAPA DO BRASIL (LEAFLET)
+// MÓDULO DE MAPA DO BRASIL (LEAFLET)
 // ==========================================
 let map;
 let pinsLayer;
@@ -956,6 +878,9 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarPinos();
     if (pinForm) {
         pinForm.addEventListener('submit', salvarLojistaLocal);
+    }
+    if (pinCnpjInput) {
+        pinCnpjInput.addEventListener('blur', buscarCnpjNoMapa);
     }
 });
 
@@ -984,7 +909,6 @@ function salvarPinosLocais() {
 
 function initMap() {
     if (map) return;
-
     map = L.map('map', {
         doubleClickZoom: false
     }).setView([-14.235, -51.925], 4);
@@ -1001,18 +925,11 @@ function initMap() {
 
     map.on('contextmenu', onMapClick);
     map.on('dblclick', onMapClick);
-
     renderizarPinosNoMapa();
 }
 
-function abrirModalNovoClienteMapa() {
-    abrirModalPin('', '');
-    mostrarToast("Digite o CNPJ para buscar os dados automaticamente!", "info");
-}
-window.abrirModalNovoClienteMapa = abrirModalNovoClienteMapa;
-
 function obterIconePin(status) {
-    let color = status === 'ativo' ? '#2ecc71' : status === 'prospect' ? '#f39c12' : '#e74c3c';
+    let color = status === 'ativo' ? '#FF4D00' : status === 'prospect' ? '#f39c12' : '#e74c3c';
     return L.divIcon({
         className: 'custom-div-icon',
         html: `<div style='background-color:${color}; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.5);'></div>`,
@@ -1027,17 +944,17 @@ function renderizarPinosNoMapa() {
     locaisLojistas.forEach(local => {
         const marker = L.marker([local.lat, local.lng], { icon: obterIconePin(local.status) });
         marker.bindPopup(`
-            <div style="min-width: 180px; padding: 5px; font-family: 'Inter', sans-serif;">
-                <h4 style="margin:0 0 5px 0; color:#333; font-size:14px;">${local.nome}</h4>
-                <p style="margin:0; font-size:12px; color:#666;"><strong>Situação:</strong> ${local.status.toUpperCase()}</p>
-                ${local.contato ? `<p style="margin:5px 0 0 0; font-size:12px; font-weight:bold; color:var(--primary-color);"><i class='bx bx-phone'></i> ${local.contato}</p>` : ''}
-                ${local.obs ? `<p style="margin:8px 0 0 0; font-size:11px; border-top:1px solid #eee; padding-top:5px; color:#555;">${local.obs}</p>` : ''}
-                <div style="margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
-                    <button class="btn-primary" style="font-size:12px; padding:6px 8px; border-radius:4px; cursor:pointer; width: 100%; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="abrirPerfilCliente('${local.id}', 'lojista'); return false;">
-                        <i class='bx bx-folder-open'></i> Abrir Arquivos
-                    </button>
-                    <button class="btn-secondary" style="font-size:11px; padding:4px 8px; border-radius:4px; cursor:pointer; width: 100%; text-align:center;" onclick="prepararEdicaoPin('${local.id}'); return false;">
+            <div class="map-popup-content">
+                <h4>${local.nome}</h4>
+                <p><strong>Situação:</strong> ${local.status.toUpperCase()}</p>
+                ${local.contato ? `<p class="popup-contact"><i class='bx bx-phone'></i> ${local.contato}</p>` : ''}
+                ${local.obs ? `<div class="popup-obs">${local.obs}</div>` : ''}
+                <div class="popup-actions">
+                    <button class="btn-secondary" style="font-size:10px; padding:4px 8px;" onclick="prepararEdicaoPin('${local.id}'); return false;">
                         Editar / Excluir
+                    </button>
+                    <button class="btn-secondary" style="font-size:10px; padding:4px 8px; margin-left: 5px;" onclick="window.abrirPerfilCliente('${local.id}', 'lojista'); return false;">
+                        Arquivos
                     </button>
                 </div>
             </div>
@@ -1047,19 +964,16 @@ function renderizarPinosNoMapa() {
 }
 
 function mostrarMapa() {
-    mainColumn.style.display = 'none';
-    iframeColumn.style.display = 'none';
-    mapColumn.style.display = 'block';
+    mainColumn.classList.add('hidden');
+    iframeColumn.classList.add('hidden');
+    if (clientesColumn) clientesColumn.classList.add('hidden');
+    mapColumn.classList.remove('hidden');
 
     document.getElementById("dashboardTitle").innerText = "Mapa de Lojistas e Clientes";
-
-    const allLinks = document.querySelectorAll(".nav-links a");
-    allLinks.forEach(l => l.classList.remove("active"));
-    const linkMapa = document.getElementById("linkMapa");
-    if (linkMapa) linkMapa.classList.add("active");
-
+    document.querySelectorAll(".nav-links li").forEach(li => li.classList.remove("active"));
+    if (liMapa) liMapa.classList.add("active");
     initMap();
-    setTimeout(() => { map.invalidateSize(); }, 300);
+    setTimeout(() => { if(map) map.invalidateSize(); }, 300);
 }
 
 function abrirModalPin(lat, lng) {
@@ -1084,22 +998,19 @@ function salvarLojistaLocal(e) {
 
     const latStr = document.getElementById("pinLat").value;
     const lngStr = document.getElementById("pinLng").value;
-    const pinCnpj = document.getElementById("pinCnpj") ? document.getElementById("pinCnpj").value : "";
 
-    if (!latStr || !lngStr) {
-        mostrarToast("Endereço não localizado pelo CNPJ e nenhum ponto no mapa foi clicado!", "error");
-        return;
-    }
+    const oldPin = editandoPinId ? locaisLojistas.find(l => l.id === editandoPinId) : null;
 
     const novoPin = {
         id: editandoPinId || Date.now().toString(),
         nome: nome,
         contato: document.getElementById("pinContato").value.trim(),
         status: document.getElementById("pinStatus").value,
-        obs: document.getElementById("pinObs").value.trim() + (pinCnpj ? "\nCNPJ: " + pinCnpj : ""),
+        obs: document.getElementById("pinObs").value.trim(),
         lat: parseFloat(latStr),
         lng: parseFloat(lngStr),
-        data: new Date().toISOString()
+        data: new Date().toISOString(),
+        arquivos: oldPin ? (oldPin.arquivos || []) : []
     };
 
     if (editandoPinId) {
@@ -1115,14 +1026,13 @@ function salvarLojistaLocal(e) {
 
     salvarPinosLocais();
     fecharModalPin();
-    map.closePopup();
+    if(map) map.closePopup();
 }
 
 function prepararEdicaoPin(id) {
     const local = locaisLojistas.find(l => l.id === id);
     if (!local) return;
-
-    map.closePopup();
+    if(map) map.closePopup();
     editandoPinId = id;
     document.getElementById("pinLat").value = local.lat;
     document.getElementById("pinLng").value = local.lng;
@@ -1130,11 +1040,9 @@ function prepararEdicaoPin(id) {
     document.getElementById("pinContato").value = local.contato || '';
     document.getElementById("pinStatus").value = local.status || 'ativo';
     document.getElementById("pinObs").value = local.obs || '';
-
     document.getElementById('pinModalTitle').innerText = "Editar Local (Lojista)";
     document.getElementById('btnSalvarPin').innerText = "Atualizar";
     document.getElementById('btnDeletePinContainer').style.display = 'block';
-
     pinModal.classList.add("active");
 }
 
@@ -1148,15 +1056,154 @@ function deletarPinSelecionado() {
     }
 }
 
+function resetarVisaoMapa() {
+    if (map) {
+        map.setView([-14.235, -51.925], 4);
+        mostrarToast("Visão geral restaurada", "info");
+    }
+}
+
 window.mostrarMapa = mostrarMapa;
+window.mostrarClientes = mostrarClientes;
 window.fecharModalPin = fecharModalPin;
 window.prepararEdicaoPin = prepararEdicaoPin;
 window.deletarPinSelecionado = deletarPinSelecionado;
+window.resetarVisaoMapa = resetarVisaoMapa;
+window.abrirModalNovoClienteMapa = () => {
+    // Abre o mapa primeiro e depois o modal
+    mostrarMapa();
+    setTimeout(() => {
+        abrirModalPin(-15.7942, -47.8822); // Centro de Brasília como fallback
+    }, 500);
+};
 
 // ==========================================
-// MÃ“DULO DE PERFIL / ARQUIVOS
+// LÓGICA DE CLIENTES E CNPJ
 // ==========================================
-// MÓDULO DE PERFIL / ARQUIVOS
+
+async function buscarCnpjNoMapa() {
+    const cnpj = pinCnpjInput.value.replace(/\D/g, '');
+    if (cnpj.length !== 14) return;
+
+    mostrarToast("Buscando dados do CNPJ...", "info");
+    
+    try {
+        const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+        if (!response.ok) throw new Error("CNPJ não encontrado.");
+        
+        const data = await response.json();
+        
+        document.getElementById("pinNome").value = data.razao_social || data.nome_fantasia;
+        document.getElementById("pinObs").value = `Endereço: ${data.logradouro}, ${data.numero} - ${data.bairro}, ${data.municipio}/${data.uf}`;
+        
+        // Geocodificação via Nominatim (Free)
+        const enderecoBusca = `${data.logradouro}, ${data.numero}, ${data.municipio}, ${data.uf}, Brasil`;
+        mostrarToast("Localizando no mapa...", "info");
+        
+        const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(enderecoBusca)}`);
+        const geoData = await geoResp.json();
+        
+        if (geoData && geoData.length > 0) {
+            const { lat, lon } = geoData[0];
+            const latNum = parseFloat(lat);
+            const lonNum = parseFloat(lon);
+            
+            document.getElementById("pinLat").value = latNum;
+            document.getElementById("pinLng").value = lonNum;
+            
+            if (map) {
+                map.setView([latNum, lonNum], 16);
+                
+                // Adiciona um marcador temporário para feedback visual imediato
+                if (pinsLayer) {
+                    // Limpamos e renderizamos os existentes + o novo temporário
+                    pinsLayer.clearLayers();
+                    renderizarPinosNoMapa(); 
+                    
+                    L.marker([latNum, lonNum], { 
+                        icon: obterIconePin('ativo') 
+                    })
+                    .addTo(pinsLayer)
+                    .bindPopup(`<b>${data.razao_social || data.nome_fantasia}</b><br>Localização encontrada pelo CNPJ.`)
+                    .openPopup();
+                }
+            }
+            mostrarToast("Dados e localização encontrados!");
+        } else {
+            mostrarToast("Dados encontrados, mas localização geográfica não precisada.", "info");
+        }
+        
+    } catch (err) {
+        console.error("Erro CNPJ:", err);
+        mostrarToast("Erro ao buscar CNPJ. Verifique os dados.", "error");
+    }
+}
+
+function renderizarTabelaClientes() {
+    const container = document.getElementById('listaLojistasLateral');
+    if (!container) return;
+
+    if (locaisLojistas.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding: 40px; color: var(--text-muted);">
+                <i class='bx bx-user-x' style='font-size: 48px; margin-bottom: 16px; display: block;'></i>
+                <p>Nenhum cliente cadastrado no mapa.</p>
+                <button class="btn btn-primary btn-sm" style="margin-top: 16px;" onclick="window.abrirModalNovoClienteMapa()">Adicionar CNPJ no Mapa</button>
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente / Lojista</th>
+                    <th>Status</th>
+                    <th>Contato</th>
+                    <th style="text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    locaisLojistas.forEach(local => {
+        html += `
+            <tr>
+                <td>
+                    <strong>${local.nome}</strong><br>
+                    <small style="color: var(--text-muted); font-size: 10px;">${local.id}</small>
+                </td>
+                <td>
+                    <span class="status-badge status-${local.status === 'ativo' ? 'ganho' : 'proposta'}">
+                        ${local.status.toUpperCase()}
+                    </span>
+                </td>
+                <td>${local.contato || '-'}</td>
+                <td style="text-align: right;">
+                    <button class="action-btn" onclick="window.abrirPerfilCliente('${local.id}', 'lojista')">
+                        <i class='bx bx-folder'></i>
+                    </button>
+                    <button class="action-btn edit" onclick="window.prepararEdicaoPin('${local.id}')">
+                        <i class='bx bx-edit'></i>
+                    </button>
+                    <button class="action-btn delete" onclick="window.deletarPinSelecionadoParaID('${local.id}')">
+                        <i class='bx bx-trash'></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+}
+
+window.deletarPinSelecionadoParaID = (id) => {
+    editandoPinId = id;
+    deletarPinSelecionado();
+    renderizarTabelaClientes();
+};
 
 // ==========================================
 // MÓDULO DE PERFIL / ARQUIVOS
@@ -1178,21 +1225,21 @@ function abrirPerfilCliente(id, tipoContexto = 'empresa') {
     const cliente = obterClienteContexto();
     if (!cliente) return;
 
-    const perfilModal = document.getElementById("perfilModal");
+    const perfilModal = document.getElementById('perfilModal');
     if (!perfilModal) return;
 
-    document.getElementById("perfilNome").innerText = cliente.nome;
-    document.getElementById("perfilCNPJ").innerText = (cliente.cnpj && cliente.cnpj !== "-") ? "CNPJ: " + cliente.cnpj : "Arquivos do Lojista / Cliente";
+    document.getElementById('perfilNome').innerText = cliente.nome;
+    document.getElementById('perfilCNPJ').innerText = (cliente.cnpj && cliente.cnpj !== '-') ? 'CNPJ: ' + cliente.cnpj : 'Arquivos do Lojista / Cliente';
 
     if (!cliente.arquivos) cliente.arquivos = [];
 
     renderizarArquivosCliente();
-    perfilModal.classList.add("active");
+    perfilModal.classList.add('active');
 }
 
 function fecharPerfil() {
-    const perfilModal = document.getElementById("perfilModal");
-    if (perfilModal) perfilModal.classList.remove("active");
+    const perfilModal = document.getElementById('perfilModal');
+    if (perfilModal) perfilModal.classList.remove('active');
     clientePerfilId = null;
     document.getElementById('fileUploadInput').value = '';
 }
@@ -1200,11 +1247,10 @@ function fecharPerfil() {
 function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     if (!clientePerfilId) return;
 
     if (file.size > 1.5 * 1024 * 1024) {
-        mostrarToast("Selecione um arquivo de até 1.5MB.", "error");
+        mostrarToast('Selecione um arquivo de até 1.5MB.', 'error');
         document.getElementById('fileUploadInput').value = '';
         return;
     }
@@ -1212,7 +1258,6 @@ function handleFileUpload(event) {
     const reader = new FileReader();
     reader.onload = function (e) {
         const base64Data = e.target.result;
-
         const cliente = obterClienteContexto();
         if (!cliente) return;
         if (!cliente.arquivos) cliente.arquivos = [];
@@ -1238,57 +1283,48 @@ function handleFileUpload(event) {
                 salvarDados();
             }
             renderizarArquivosCliente();
-            mostrarToast("Upload concluido!", "success");
+            mostrarToast('Upload concluído!', 'success');
         } catch (error) {
-            mostrarToast("Memória cheia! Exclua outros arquivos.", "error");
+            mostrarToast('Memória cheia! Exclua outros arquivos.', 'error');
             cliente.arquivos.pop();
             if (clientePerfilTipo === 'lojista') salvarPinosLocais(); else salvarDados();
         }
     };
     reader.onerror = function () {
-        mostrarToast("Erro na leitura do arquivo.", "error");
+        mostrarToast('Erro na leitura do arquivo.', 'error');
     };
     reader.readAsDataURL(file);
 }
 
 function renderizarArquivosCliente() {
-    const container = document.getElementById("listaArquivosContainer");
+    const container = document.getElementById('listaArquivosContainer');
     if (!container) return;
-    container.innerHTML = "";
+    container.innerHTML = '';
 
     const cliente = obterClienteContexto();
     if (!cliente || !cliente.arquivos || cliente.arquivos.length === 0) {
-        container.innerHTML = "<p style='color:#999; font-size:13px; text-align:center; padding:10px;'>Nenhum arquivo adicionado.</p>";
+        container.innerHTML = '<p style="color:#999; font-size:13px; text-align:center; padding:10px;">Nenhum arquivo adicionado.</p>';
         return;
     }
 
     cliente.arquivos.forEach(arq => {
         const div = document.createElement("div");
-        div.style.display = "flex";
-        div.style.justifyContent = "space-between";
-        div.style.alignItems = "center";
-        div.style.padding = "10px";
-        div.style.border = "1px solid #ddd";
-        div.style.borderRadius = "8px";
-        div.style.marginBottom = "8px";
-        div.style.backgroundColor = "#fff";
-
-        const typeColor = arq.icon === 'bx-file-pdf' ? '#e74c3c' : (arq.icon === 'bx-image' ? '#3498db' : '#95a5a6');
+        div.className = "file-item-card";
+        const typeColor = arq.icon === 'bx-file-pdf' ? 'var(--danger)' : (arq.icon === 'bx-image' ? 'var(--info)' : 'var(--text-muted)');
 
         div.innerHTML = `
-            <div style="display:flex; align-items:center; gap:10px; width:75%;">
+            <div class="file-item-info">
                 <i class='bx ${arq.icon}' style='font-size:24px; color:${typeColor}'></i>
-                <div style="max-width:90%">
-                    <h5 style="margin:0; font-size:13px; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${arq.name}</h5>
-                    <p style="margin:0; font-size:11px; color:#888;">${arq.size} - ${arq.date}</p>
+                <div class="file-item-text">
+                    <h5>${arq.name}</h5>
+                    <p>${arq.size} - ${arq.date}</p>
                 </div>
             </div>
-            <div style="display:flex; gap: 8px;">
-                <button title="Baixar / Visualizar" class="action-btn" onclick="visualizarArquivo('${arq.id}')" style="color:var(--primary-color)"><i class='bx bx-cloud-download'></i></button>
+            <div class="file-item-actions">
+                <button title="Baixar / Visualizar" class="action-btn" onclick="visualizarArquivo('${arq.id}')"><i class='bx bx-cloud-download'></i></button>
                 <button title="Excluir Arquivo" class="action-btn delete" onclick="deletarArquivo('${arq.id}')"><i class='bx bx-trash'></i></button>
             </div>
         `;
-
         container.appendChild(div);
     });
 }
@@ -1307,16 +1343,14 @@ function visualizarArquivo(idArq) {
             link.download = arq.name;
             link.click();
             window.URL.revokeObjectURL(link.href);
-            mostrarToast("Iniciando download...", "info");
+            mostrarToast('Iniciando download...', 'info');
         });
 }
 
 function deletarArquivo(idArq) {
-    if (!confirm("Certeza que quer apagar definitivamente este arquivo?")) return;
-
+    if (!confirm('Certeza que quer apagar definitivamente este arquivo?')) return;
     const cliente = obterClienteContexto();
     if (!cliente || !cliente.arquivos) return;
-
     cliente.arquivos = cliente.arquivos.filter(a => a.id !== idArq);
     if (clientePerfilTipo === 'lojista') {
         salvarPinosLocais();
@@ -1324,7 +1358,7 @@ function deletarArquivo(idArq) {
         salvarDados();
     }
     renderizarArquivosCliente();
-    mostrarToast("Arquivo excluido!", "success");
+    mostrarToast('Arquivo excluído!', 'success');
 }
 
 window.abrirPerfilCliente = abrirPerfilCliente;
@@ -1332,24 +1366,25 @@ window.fecharPerfil = fecharPerfil;
 window.handleFileUpload = handleFileUpload;
 window.visualizarArquivo = visualizarArquivo;
 window.deletarArquivo = deletarArquivo;
+
 // ==========================================
 // MÓDULO DE CONFIGURAÇÕES / TEMA
 // ==========================================
 function abrirConfiguracoes() {
     const docModal = document.getElementById('configModal');
-    if (docModal) docModal.classList.add('active');
+    if(docModal) docModal.classList.add('active');
     const currentTheme = localStorage.getItem('nexus_theme') || 'light';
     const select = document.getElementById('themeSelect');
-    if (select) select.value = currentTheme;
+    if(select) select.value = currentTheme;
 }
 
 function fecharConfiguracoes() {
     const docModal = document.getElementById('configModal');
-    if (docModal) docModal.classList.remove('active');
+    if(docModal) docModal.classList.remove('active');
 }
 
 function aplicarTema(theme) {
-    if (theme === 'dark') {
+    if(theme === 'dark') {
         document.body.classList.add('dark-theme');
     } else {
         document.body.classList.remove('dark-theme');
@@ -1358,101 +1393,42 @@ function aplicarTema(theme) {
 
 function mudarTema() {
     const select = document.getElementById('themeSelect');
-    if (select) {
+    if(select) {
         const theme = select.value;
         localStorage.setItem('nexus_theme', theme);
         aplicarTema(theme);
+        mostrarToast("Tema alterado!", "info");
     }
 }
 
+window.mostrarPainel = mostrarPainel;
+window.mostrarMapa = mostrarMapa;
+window.mostrarClientes = mostrarClientes;
+window.abrirIframeFullScreen = abrirIframeFullScreen;
+window.abrirModal = abrirModal;
+window.fecharModal = fecharModal;
+window.abrirModalPin = abrirModalPin;
+window.fecharModalPin = fecharModalPin;
+window.salvarEmpresa = salvarEmpresa;
+window.salvarLojistaLocal = salvarLojistaLocal;
+window.prepararEdicao = prepararEdicao;
+window.deletarEmpresa = deletarEmpresa;
+window.abrirPerfilCliente = abrirPerfilCliente;
+window.fecharPerfil = fecharPerfil;
+window.handleFileUpload = handleFileUpload;
+window.visualizarArquivo = visualizarArquivo;
+window.deletarArquivo = deletarArquivo;
 window.abrirConfiguracoes = abrirConfiguracoes;
 window.fecharConfiguracoes = fecharConfiguracoes;
 window.mudarTema = mudarTema;
+window.toggleNotesPanel = () => {
+    const p = document.getElementById('iframeNotesPanel');
+    if(p) p.classList.toggle('hidden');
+};
+window.fazerLogout = () => {
+    localStorage.removeItem('nexus_auth');
+    window.location.href = 'login.html';
+};
 
-const themeOnLoad = localStorage.getItem('nexus_theme') || 'dark';
+const themeOnLoad = localStorage.getItem('nexus_theme') || 'light';
 aplicarTema(themeOnLoad);
-
-// ==========================================
-// ALTERAR LOGIN (EMAIL/SENHA) NAS CONFIGURAÇÕES
-// ==========================================
-function salvarNovoLogin() {
-    const novoEmail = document.getElementById('configNovoEmail') ? document.getElementById('configNovoEmail').value.trim() : '';
-    const novaSenha = document.getElementById('configNovaSenha') ? document.getElementById('configNovaSenha').value : '';
-    const confirmarSenha = document.getElementById('configConfirmarSenha') ? document.getElementById('configConfirmarSenha').value : '';
-
-    if (!novoEmail && !novaSenha) {
-        mostrarToast('Preencha ao menos um campo para alterar.', 'error');
-        return;
-    }
-
-    if (novaSenha && novaSenha !== confirmarSenha) {
-        mostrarToast('As senhas não coincidem!', 'error');
-        return;
-    }
-
-    if (novaSenha && novaSenha.length < 4) {
-        mostrarToast('A senha precisa ter pelo menos 4 caracteres.', 'error');
-        return;
-    }
-
-    const emailAtual = localStorage.getItem('nexus_user');
-    const usuariosStr = localStorage.getItem('nexus_usuarios');
-    let usuarios = usuariosStr ? JSON.parse(usuariosStr) : [];
-    const idx = usuarios.findIndex(u => u.email === emailAtual);
-
-    if (idx === -1) {
-        mostrarToast('Usuário não encontrado no sistema.', 'error');
-        return;
-    }
-
-    if (novoEmail && novoEmail !== emailAtual) {
-        const emailJaExiste = usuarios.find(u => u.email === novoEmail && novoEmail !== emailAtual);
-        if (emailJaExiste) {
-            mostrarToast('Este e-mail já está cadastrado.', 'error');
-            return;
-        }
-        // Migrar dados do usuário para o novo email
-        const dadosAntigos = localStorage.getItem('nexus_empresas_' + emailAtual);
-        const pinsAntigos = localStorage.getItem('nexus_map_pins_' + emailAtual);
-        if (dadosAntigos) {
-            localStorage.setItem('nexus_empresas_' + novoEmail, dadosAntigos);
-            localStorage.removeItem('nexus_empresas_' + emailAtual);
-        }
-        if (pinsAntigos) {
-            localStorage.setItem('nexus_map_pins_' + novoEmail, pinsAntigos);
-            localStorage.removeItem('nexus_map_pins_' + emailAtual);
-        }
-        usuarios[idx].email = novoEmail;
-        localStorage.setItem('nexus_user', novoEmail);
-        const adminName = document.querySelector('.admin_name');
-        if (adminName) {
-            const username = novoEmail.split('@')[0];
-            adminName.innerText = username.charAt(0).toUpperCase() + username.slice(1);
-        }
-    }
-
-    if (novaSenha) {
-        usuarios[idx].senha = novaSenha;
-    }
-
-    localStorage.setItem('nexus_usuarios', JSON.stringify(usuarios));
-    mostrarToast('Dados de acesso atualizados com sucesso!', 'success');
-
-    if (document.getElementById('configNovoEmail')) document.getElementById('configNovoEmail').value = '';
-    if (document.getElementById('configNovaSenha')) document.getElementById('configNovaSenha').value = '';
-    if (document.getElementById('configConfirmarSenha')) document.getElementById('configConfirmarSenha').value = '';
-}
-
-window.salvarNovoLogin = salvarNovoLogin;
-
-// ==========================================
-// EXPOR FUNÇÕES GLOBALMENTE (type="module" fix)
-// ==========================================
-window.mostrarPainel = mostrarPainel;
-window.abrirModal = abrirModal;
-window.fecharModal = fecharModal;
-window.toggleSubMenuEmpresas = toggleSubMenuEmpresas;
-window.toggleNotesPanel = toggleNotesPanel;
-window.filtrarEmpresas = filtrarEmpresas;
-window.mostrarToast = mostrarToast;
-window.fazerLogout = fazerLogout;
